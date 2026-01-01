@@ -1,0 +1,14 @@
+{
+  "name": "yf-downloader",
+  "version": "1.0.0",
+  "description": "This is a mini app for dowloand history data",
+  "main": "download.js",
+  "type": "module",
+  "scripts": {
+    "download": "node download.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
