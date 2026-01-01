@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Viewer data_BTC-USD_1h.csv</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 1.5rem;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    h1 {
+      margin-bottom: 0.5rem;
+    }
+    .panel {
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.8rem;
+    }
+    th, td {
+      border: 1px solid #1f2937;
+      padding: 4px 6px;
+      text-align: right;
+    }
+    th {
+      background: #020617;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    td:first-child, th:first-child {
+      text-align: left;
+    }
+    #table-container {
+      max-height: 320px;
+      overflow: auto;
+      border-radius: 6px;
+      border: 1px solid #1f2937;
+    }
+    #stats {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    canvas {
+      background: #020617;
+      border-radius: 6px;
+      border: 1px solid #1f2937;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <h1>Visualizador de datos descargados</h1>
+  <p style="font-size:0.9rem; color:#9ca3af;">
+    Este visor asume un archivo CSV con columnas: Date,Open,High,Low,Close,Volume,
+    tal como lo genera tu <code>download.js</code>.
+  </p>
+
+  <div class="panel">
+    <h2 style="margin-top:0;">1. Cargar CSV generado</h2>
+    <input type="file" id="file-input" accept=".csv" />
+    <div id="stats"></div>
+  </div>
+
+  <div class="panel">
+    <h2 style="margin-top:0;">2. Gráfico de Close</h2>
+    <canvas id="priceChart" height="140"></canvas>
+  </div>
+
+  <div class="panel">
+    <h2 style="margin-top:0;">3. Tabla de datos (OHLCV)</h2>
+    <div id="table-container"></div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const tableContainer = document.getElementById('table-container');
+    const statsDiv = document.getElementById('stats');
+    const ctx = document.getElementById('priceChart').getContext('2d');
+    let priceChart = null;
+
+    fileInput.addEventListener('change', handleFile, false);
+
+    function handleFile(evt) {
+      const file = evt.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        const text = e.target.result;
+        const { headers, rows } = parseCSV(text);
+        renderTable(headers, rows);
+        renderChart(rows);
+        renderStats(rows);
+      };
+      reader.readAsText(file);
+    }
+
+    function parseCSV(text) {
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines[0].split(',');
+      const rows = lines.slice(1).map(line => {
+        const cols = line.split(',');
+        return {
+          Date: cols[0],
+          Open: parseFloat(cols[1]),
+          High: parseFloat(cols[2]),
+          Low: parseFloat(cols[3]),
+          Close: parseFloat(cols[4]),
+          Volume: parseFloat(cols[5])
+        };
+      });
+      return { headers, rows };
+    }
+
+    function renderTable(headers, rows) {
+      let html = '<table><thead><tr>';
+      headers.forEach(h => { html += `<th>${h}</th>`; });
+      html += '</tr></thead><tbody>';
+
+      rows.forEach(r => {
+        html += '<tr>';
+        html += `<td>${r.Date}</td>`;
+        html += `<td>${r.Open.toFixed(2)}</td>`;
+        html += `<td>${r.High.toFixed(2)}</td>`;
+        html += `<td>${r.Low.toFixed(2)}</td>`;
+        html += `<td>${r.Close.toFixed(2)}</td>`;
+        html += `<td>${r.Volume.toLocaleString('en-US')}</td>`;
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      tableContainer.innerHTML = html;
+    }
+
+    function renderChart(rows) {
+      const labels = rows.map(r => r.Date);
+      const closes = rows.map(r => r.Close);
+
+      if (priceChart) priceChart.destroy();
+
+      priceChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Close',
+            data: closes,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34,197,94,0.1)',
+            borderWidth: 1,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              ticks: {
+                maxTicksLimit: 10,
+                color: '#9ca3af'
+              }
+            },
+            y: {
+              ticks: {
+                color: '#9ca3af'
+              }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#e5e7eb' } }
+          }
+        }
+      });
+    }
+
+    function renderStats(rows) {
+      if (!rows.length) {
+        statsDiv.innerHTML = '';
+        return;
+      }
+      const first = rows[0].Close;
+      const last = rows[rows.length - 1].Close;
+      const min = Math.min(...rows.map(r => r.Close));
+      const max = Math.max(...rows.map(r => r.Close));
+      const totalRet = (last - first) / first;
+
+      statsDiv.innerHTML = `
+        <p>
+          Velas: <strong>${rows.length}</strong><br/>
+          Close mínimo: <strong>${min.toFixed(2)}</strong><br/>
+          Close máximo: <strong>${max.toFixed(2)}</strong><br/>
+          Rendimiento total del periodo: <strong>${(totalRet * 100).toFixed(2)} %</strong>
+        </p>
+      `;
+    }
+  </script>
+</body>
+</html>
