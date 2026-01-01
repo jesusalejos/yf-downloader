@@ -2,207 +2,691 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Viewer data_BTC-USD_1h.csv</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analizador de Trading Sistemático</title>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      margin: 1.5rem;
-      background: #0f172a;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       color: #e5e7eb;
+      min-height: 100vh;
+      padding: 2rem 1rem;
     }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    
+    header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #334155;
+    }
+    
     h1 {
+      font-size: 2rem;
       margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #22c55e, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
-    .panel {
-      background: #111827;
-      border: 1px solid #1f2937;
+    
+    .subtitle {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+    
+    .server-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(17, 24, 39, 0.6);
+      padding: 0.5rem 1rem;
       border-radius: 8px;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
     }
+    
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      animation: pulse 2s infinite;
+    }
+    
+    .status-dot.online {
+      background: #22c55e;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .panel {
+      background: rgba(17, 24, 39, 0.8);
+      backdrop-filter: blur(10px);
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    
+    .panel h2 {
+      margin-bottom: 1rem;
+      font-size: 1.3rem;
+      color: #22c55e;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .controls-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    label {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      font-weight: 500;
+    }
+    
+    input, select {
+      background: #020617;
+      border: 1px solid #334155;
+      color: #e5e7eb;
+      padding: 0.6rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+    }
+    
+    button {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 4px 6px rgba(34, 197, 94, 0.2);
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(34, 197, 94, 0.3);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      background: #374151;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .stat-card {
+      background: #020617;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      text-align: center;
+    }
+    
+    .stat-label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #22c55e;
+    }
+    
+    .stat-value.negative {
+      color: #ef4444;
+    }
+    
+    canvas {
+      background: #020617;
+      border-radius: 8px;
+      border: 1px solid #1f2937;
+      max-height: 400px;
+    }
+    
     table {
       width: 100%;
       border-collapse: collapse;
+      font-size: 0.85rem;
       margin-top: 1rem;
-      font-size: 0.8rem;
     }
+    
     th, td {
-      border: 1px solid #1f2937;
-      padding: 4px 6px;
+      padding: 0.6rem;
       text-align: right;
+      border: 1px solid #1f2937;
     }
+    
     th {
       background: #020617;
+      font-weight: 600;
       position: sticky;
       top: 0;
       z-index: 1;
     }
+    
     td:first-child, th:first-child {
       text-align: left;
     }
-    #table-container {
-      max-height: 320px;
+    
+    .table-container {
+      max-height: 400px;
       overflow: auto;
-      border-radius: 6px;
+      border-radius: 8px;
       border: 1px solid #1f2937;
     }
-    #stats {
+    
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: #94a3b8;
+    }
+    
+    .loading.active {
+      display: block;
+    }
+    
+    .spinner {
+      border: 3px solid #1f2937;
+      border-top: 3px solid #22c55e;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .alert {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+    }
+    
+    .success {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid #22c55e;
+      color: #86efac;
+    }
+    
+    .info {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid #3b82f6;
+      color: #93c5fd;
+    }
+    
+    .quick-presets {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
       margin-top: 0.5rem;
-      font-size: 0.85rem;
     }
-    canvas {
-      background: #020617;
+    
+    .preset-btn {
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+      padding: 0.4rem 0.8rem;
       border-radius: 6px;
-      border: 1px solid #1f2937;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .preset-btn:hover {
+      background: #334155;
+      color: #e5e7eb;
+      border-color: #22c55e;
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-  <h1>Visualizador de datos descargados</h1>
-  <p style="font-size:0.9rem; color:#9ca3af;">
-    Este visor asume un archivo CSV con columnas: Date,Open,High,Low,Close,Volume,
-    tal como lo genera tu <code>download.js</code>.
-  </p>
+  <div class="container">
+    <header>
+      <h1>📊 Analizador de Trading Sistemático</h1>
+      <p class="subtitle">Descarga y analiza datos históricos con estadística y teoría de juegos</p>
+      <div class="server-status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Verificando servidor...</span>
+      </div>
+    </header>
 
-  <div class="panel">
-    <h2 style="margin-top:0;">1. Cargar CSV generado</h2>
-    <input type="file" id="file-input" accept=".csv" />
-    <div id="stats"></div>
-  </div>
+    <!-- Panel de Descarga -->
+    <div class="panel">
+      <h2>🎯 1. Configurar y Descargar Datos</h2>
+      
+      <div class="controls-grid">
+        <div class="control-group">
+          <label for="symbol">Símbolo del Activo</label>
+          <input type="text" id="symbol" value="BTC-USD" placeholder="Ej: BTC-USD, ETH-USD, AAPL">
+          <div class="quick-presets">
+            <button class="preset-btn" onclick="setSymbol('BTC-USD')">Bitcoin</button>
+            <button class="preset-btn" onclick="setSymbol('ETH-USD')">Ethereum</button>
+            <button class="preset-btn" onclick="setSymbol('SPY')">S&P 500</button>
+            <button class="preset-btn" onclick="setSymbol('QQQ')">Nasdaq</button>
+            <button class="preset-btn" onclick="setSymbol('AAPL')">Apple</button>
+            <button class="preset-btn" onclick="setSymbol('TSLA')">Tesla</button>
+          </div>
+        </div>
+        
+        <div class="control-group">
+          <label for="dateFrom">Fecha Desde</label>
+          <input type="date" id="dateFrom" value="2023-01-01">
+        </div>
+        
+        <div class="control-group">
+          <label for="dateTo">Fecha Hasta</label>
+          <input type="date" id="dateTo">
+        </div>
+        
+        <div class="control-group">
+          <label for="interval">Intervalo (Timeframe)</label>
+          <select id="interval">
+            <option value="1h">1 hora</option>
+            <option value="1d" selected>1 día</option>
+            <option value="1wk">1 semana</option>
+            <option value="1mo">1 mes</option>
+            <option value="5m">5 minutos</option>
+            <option value="15m">15 minutos</option>
+            <option value="30m">30 minutos</option>
+          </select>
+        </div>
+      </div>
+      
+      <button id="downloadBtn" onclick="downloadData()">🚀 Descargar y Analizar Datos</button>
+      
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Descargando datos de Yahoo Finance...</p>
+      </div>
+      
+      <div id="message"></div>
+    </div>
 
-  <div class="panel">
-    <h2 style="margin-top:0;">2. Gráfico de Close</h2>
-    <canvas id="priceChart" height="140"></canvas>
-  </div>
+    <!-- Panel de Estadísticas -->
+    <div class="panel" id="statsPanel" style="display: none;">
+      <h2>📈 2. Análisis Estadístico Básico</h2>
+      <div class="stats-grid" id="statsGrid"></div>
+    </div>
 
-  <div class="panel">
-    <h2 style="margin-top:0;">3. Tabla de datos (OHLCV)</h2>
-    <div id="table-container"></div>
+    <!-- Panel de Gráfico -->
+    <div class="panel" id="chartPanel" style="display: none;">
+      <h2>📉 3. Gráfico de Precios</h2>
+      <canvas id="priceChart"></canvas>
+    </div>
+
+    <!-- Panel de Tabla -->
+    <div class="panel" id="tablePanel" style="display: none;">
+      <h2>📋 4. Datos Históricos (OHLCV)</h2>
+      <div class="table-container" id="tableContainer"></div>
+    </div>
   </div>
 
   <script>
-    const fileInput = document.getElementById('file-input');
-    const tableContainer = document.getElementById('table-container');
-    const statsDiv = document.getElementById('stats');
-    const ctx = document.getElementById('priceChart').getContext('2d');
-    let priceChart = null;
+    // Configuración de la API backend
+    const API_URL = 'http://localhost:3001';
+    
+    let chartInstance = null;
+    let currentData = null;
 
-    fileInput.addEventListener('change', handleFile, false);
+    // Establecer fecha de hoy por defecto
+    document.getElementById('dateTo').valueAsDate = new Date();
 
-    function handleFile(evt) {
-      const file = evt.target.files[0];
-      if (!file) return;
+    // Verificar estado del servidor al cargar la página
+    checkServerStatus();
 
-      const reader = new FileReader();
-      reader.onload = e => {
-        const text = e.target.result;
-        const { headers, rows } = parseCSV(text);
-        renderTable(headers, rows);
-        renderChart(rows);
+    async function checkServerStatus() {
+      const statusDot = document.getElementById('statusDot');
+      const statusText = document.getElementById('statusText');
+      
+      try {
+        const response = await fetch(`${API_URL}/api/health`);
+        
+        if (response.ok) {
+          statusDot.classList.add('online');
+          statusText.textContent = 'Servidor conectado ✓';
+        } else {
+          throw new Error('Servidor no responde');
+        }
+      } catch (error) {
+        statusDot.classList.remove('online');
+        statusText.textContent = '⚠️ Servidor desconectado';
+        showMessage('⚠️ No se puede conectar al servidor backend. Asegúrate de que esté corriendo en http://localhost:3000', 'error');
+      }
+    }
+
+    function setSymbol(symbol) {
+      document.getElementById('symbol').value = symbol;
+    }
+
+    async function downloadData() {
+      const symbol = document.getElementById('symbol').value.trim();
+      const dateFrom = document.getElementById('dateFrom').value;
+      const dateTo = document.getElementById('dateTo').value;
+      const interval = document.getElementById('interval').value;
+      
+      if (!symbol || !dateFrom || !dateTo) {
+        showMessage('Por favor completa todos los campos', 'error');
+        return;
+      }
+      
+      const loading = document.getElementById('loading');
+      const btn = document.getElementById('downloadBtn');
+      const message = document.getElementById('message');
+      
+      loading.classList.add('active');
+      btn.disabled = true;
+      message.innerHTML = '';
+      
+      try {
+        // Construir URL de la API backend
+        const url = `${API_URL}/api/data?symbol=${encodeURIComponent(symbol)}&dateFrom=${dateFrom}&dateTo=${dateTo}&interval=${interval}`;
+        
+        console.log('📡 Haciendo petición a:', url);
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `Error HTTP ${response.status}`);
+        }
+        
+        const data = await response.json();
+        const result = data.chart.result?.[0];
+        
+        if (!result) {
+          throw new Error('No se encontraron datos para este símbolo');
+        }
+        
+        const timestamps = result.timestamp;
+        const quote = result.indicators.quote[0];
+        
+        // Procesar datos
+        const rows = timestamps.map((t, i) => {
+          if (quote.open[i] == null || quote.close[i] == null) return null;
+          return {
+            date: new Date(t * 1000).toISOString().split('T')[0],
+            timestamp: t,
+            open: quote.open[i],
+            high: quote.high[i],
+            low: quote.low[i],
+            close: quote.close[i],
+            volume: quote.volume[i]
+          };
+        }).filter(row => row !== null);
+        
+        if (rows.length === 0) {
+          throw new Error('No se obtuvieron datos válidos');
+        }
+        
+        currentData = rows;
+        
+        showMessage(`✅ Éxito: ${rows.length} registros descargados para ${symbol}`, 'success');
         renderStats(rows);
-      };
-      reader.readAsText(file);
+        renderChart(rows, symbol);
+        renderTable(rows);
+        downloadCSV(rows, symbol, interval);
+        
+      } catch (error) {
+        showMessage(`❌ Error: ${error.message}`, 'error');
+        console.error('Error completo:', error);
+      } finally {
+        loading.classList.remove('active');
+        btn.disabled = false;
+      }
     }
 
-    function parseCSV(text) {
-      const lines = text.trim().split(/\r?\n/);
-      const headers = lines[0].split(',');
-      const rows = lines.slice(1).map(line => {
-        const cols = line.split(',');
-        return {
-          Date: cols[0],
-          Open: parseFloat(cols[1]),
-          High: parseFloat(cols[2]),
-          Low: parseFloat(cols[3]),
-          Close: parseFloat(cols[4]),
-          Volume: parseFloat(cols[5])
-        };
-      });
-      return { headers, rows };
+    function showMessage(text, type) {
+      const message = document.getElementById('message');
+      message.innerHTML = `<div class="alert ${type === 'success' ? 'success' : type === 'info' ? 'info' : ''}">${text}</div>`;
     }
 
-    function renderTable(headers, rows) {
-      let html = '<table><thead><tr>';
-      headers.forEach(h => { html += `<th>${h}</th>`; });
-      html += '</tr></thead><tbody>';
-
-      rows.forEach(r => {
-        html += '<tr>';
-        html += `<td>${r.Date}</td>`;
-        html += `<td>${r.Open.toFixed(2)}</td>`;
-        html += `<td>${r.High.toFixed(2)}</td>`;
-        html += `<td>${r.Low.toFixed(2)}</td>`;
-        html += `<td>${r.Close.toFixed(2)}</td>`;
-        html += `<td>${r.Volume.toLocaleString('en-US')}</td>`;
-        html += '</tr>';
-      });
-
-      html += '</tbody></table>';
-      tableContainer.innerHTML = html;
+    function renderStats(rows) {
+      const closes = rows.map(r => r.close);
+      const returns = [];
+      
+      for (let i = 1; i < closes.length; i++) {
+        returns.push((closes[i] - closes[i-1]) / closes[i-1]);
+      }
+      
+      const avg = returns.reduce((a, b) => a + b, 0) / returns.length;
+      const sortedReturns = [...returns].sort((a, b) => a - b);
+      const median = sortedReturns[Math.floor(sortedReturns.length / 2)];
+      
+      const variance = returns.reduce((sum, r) => sum + Math.pow(r - avg, 2), 0) / returns.length;
+      const stdDev = Math.sqrt(variance);
+      
+      const min = Math.min(...closes);
+      const max = Math.max(...closes);
+      const totalReturn = (closes[closes.length - 1] - closes[0]) / closes[0];
+      
+      const statsHtml = `
+        <div class="stat-card">
+          <div class="stat-label">Registros</div>
+          <div class="stat-value">${rows.length}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Precio Mín</div>
+          <div class="stat-value">$${min.toFixed(2)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Precio Máx</div>
+          <div class="stat-value">$${max.toFixed(2)}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Retorno Total</div>
+          <div class="stat-value ${totalReturn < 0 ? 'negative' : ''}">${(totalReturn * 100).toFixed(2)}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Retorno Promedio</div>
+          <div class="stat-value ${avg < 0 ? 'negative' : ''}">${(avg * 100).toFixed(3)}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Mediana Retorno</div>
+          <div class="stat-value">${(median * 100).toFixed(3)}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Desv. Estándar</div>
+          <div class="stat-value">${(stdDev * 100).toFixed(3)}%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Volatilidad Anual</div>
+          <div class="stat-value">${(stdDev * Math.sqrt(252) * 100).toFixed(2)}%</div>
+        </div>
+      `;
+      
+      document.getElementById('statsGrid').innerHTML = statsHtml;
+      document.getElementById('statsPanel').style.display = 'block';
     }
 
-    function renderChart(rows) {
-      const labels = rows.map(r => r.Date);
-      const closes = rows.map(r => r.Close);
-
-      if (priceChart) priceChart.destroy();
-
-      priceChart = new Chart(ctx, {
+    function renderChart(rows, symbol) {
+      const labels = rows.map(r => r.date);
+      const closes = rows.map(r => r.close);
+      
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+      
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      chartInstance = new Chart(ctx, {
         type: 'line',
         data: {
           labels,
           datasets: [{
-            label: 'Close',
+            label: `${symbol} - Precio de Cierre`,
             data: closes,
             borderColor: '#22c55e',
-            backgroundColor: 'rgba(34,197,94,0.1)',
-            borderWidth: 1,
-            pointRadius: 0
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: true
           }]
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false,
+          maintainAspectRatio: true,
+          interaction: {
+            intersect: false,
+            mode: 'index'
+          },
           scales: {
             x: {
               ticks: {
-                maxTicksLimit: 10,
+                maxTicksLimit: 15,
                 color: '#9ca3af'
+              },
+              grid: {
+                color: '#1f2937'
               }
             },
             y: {
               ticks: {
-                color: '#9ca3af'
+                color: '#9ca3af',
+                callback: function(value) {
+                  return '$' + value.toFixed(2);
+                }
+              },
+              grid: {
+                color: '#1f2937'
               }
             }
           },
           plugins: {
-            legend: { labels: { color: '#e5e7eb' } }
+            legend: {
+              labels: {
+                color: '#e5e7eb',
+                font: {
+                  size: 14
+                }
+              }
+            },
+            tooltip: {
+              backgroundColor: 'rgba(17, 24, 39, 0.9)',
+              titleColor: '#e5e7eb',
+              bodyColor: '#e5e7eb',
+              borderColor: '#22c55e',
+              borderWidth: 1,
+              callbacks: {
+                label: function(context) {
+                  return `Precio: $${context.parsed.y.toFixed(2)}`;
+                }
+              }
+            }
           }
         }
       });
+      
+      document.getElementById('chartPanel').style.display = 'block';
     }
 
-    function renderStats(rows) {
-      if (!rows.length) {
-        statsDiv.innerHTML = '';
-        return;
-      }
-      const first = rows[0].Close;
-      const last = rows[rows.length - 1].Close;
-      const min = Math.min(...rows.map(r => r.Close));
-      const max = Math.max(...rows.map(r => r.Close));
-      const totalRet = (last - first) / first;
-
-      statsDiv.innerHTML = `
-        <p>
-          Velas: <strong>${rows.length}</strong><br/>
-          Close mínimo: <strong>${min.toFixed(2)}</strong><br/>
-          Close máximo: <strong>${max.toFixed(2)}</strong><br/>
-          Rendimiento total del periodo: <strong>${(totalRet * 100).toFixed(2)} %</strong>
-        </p>
+    function renderTable(rows) {
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Open</th>
+              <th>High</th>
+              <th>Low</th>
+              <th>Close</th>
+              <th>Volume</th>
+            </tr>
+          </thead>
+          <tbody>
       `;
+      
+      rows.forEach(r => {
+        html += `
+          <tr>
+            <td>${r.date}</td>
+            <td>$${r.open.toFixed(2)}</td>
+            <td>$${r.high.toFixed(2)}</td>
+            <td>$${r.low.toFixed(2)}</td>
+            <td>$${r.close.toFixed(2)}</td>
+            <td>${r.volume.toLocaleString('en-US')}</td>
+          </tr>
+        `;
+      });
+      
+      html += '</tbody></table>';
+      document.getElementById('tableContainer').innerHTML = html;
+      document.getElementById('tablePanel').style.display = 'block';
+    }
+
+    function downloadCSV(rows, symbol, interval) {
+      let csv = 'Date,Open,High,Low,Close,Volume\n';
+      
+      rows.forEach(r => {
+        csv += `${r.date},${r.open},${r.high},${r.low},${r.close},${r.volume}\n`;
+      });
+      
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `data_${symbol}_${interval}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
     }
   </script>
 </body>

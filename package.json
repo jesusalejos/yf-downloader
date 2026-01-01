@@ -1,14 +1,20 @@
 {
-  "name": "yf-downloader",
+  "name": "yf-trading-analyzer",
   "version": "1.0.0",
-  "description": "This is a mini app for dowloand history data",
-  "main": "download.js",
+  "description": "Analizador de Trading Sistemático con backend Node.js",
   "type": "module",
+  "main": "server.js",
   "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "download": "node download.js"
   },
-  "keywords": [],
+  "keywords": ["trading", "yahoo-finance", "statistics"],
   "author": "",
   "license": "MIT",
-  "dependencies": {}
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
+  }
 }
