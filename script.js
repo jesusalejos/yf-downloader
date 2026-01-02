@@ -4,19 +4,20 @@ let currentData = null;
 
 // Inicialización
 document.addEventListener('DOMContentLoaded', function() {
+  // Por defecto, fecha de fin es hoy
   document.getElementById('dateTo').valueAsDate = new Date();
   updateIntervalNote();
 });
 
 /**
- * Establece el símbolo del activo
+ * Establece el símbolo del activo al hacer clic en los botones rápidos
  */
 function setSymbol(symbol) {
   document.getElementById('symbol').value = symbol;
 }
 
 /**
- * Actualiza la nota de intervalo según el timeframe seleccionado
+ * Actualiza la nota de ayuda según el intervalo seleccionado
  */
 function updateIntervalNote() {
   const interval = document.getElementById('interval').value;
@@ -41,7 +42,7 @@ function updateIntervalNote() {
 }
 
 /**
- * Descarga datos de Yahoo Finance y realiza el análisis
+ * Descarga datos usando TU SERVIDOR LOCAL (server.js)
  */
 async function downloadData() {
   const symbol = document.getElementById('symbol').value.trim();
@@ -74,15 +75,18 @@ async function downloadData() {
     const period1 = Math.floor(new Date(dateFrom).getTime() / 1000);
     const period2 = Math.floor(new Date(dateTo).getTime() / 1000);
     
-    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&period1=${period1}&period2=${period2}`;
-    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
+    // --- CAMBIO CLAVE AQUÍ ---
+    // Llamamos a la ruta /api/yahoo que definiste en server.js
+    const localUrl = `/api/yahoo?symbol=${symbol}&interval=${interval}&period1=${period1}&period2=${period2}`;
     
-    console.log('📡 Descargando desde Yahoo Finance...');
+    console.log('📡 Contactando a servidor local...');
     
-    const response = await fetch(proxyUrl);
+    const response = await fetch(localUrl);
     
     if (!response.ok) {
-      throw new Error(`Error HTTP ${response.status}`);
+      // Si el servidor local dio error (ej: 500), lanzamos el mensaje
+      const errJson = await response.json();
+      throw new Error(errJson.error || `Error HTTP ${response.status}`);
     }
     
     const data = await response.json();
@@ -126,6 +130,8 @@ async function downloadData() {
     currentData = rows;
     
     showMessage(`✅ ${rows.length} registros descargados para ${symbol} (${interval})`, 'success');
+    
+    // Ejecutar funciones de visualización
     renderStats(rows, interval);
     renderChart(rows, symbol, interval);
     renderTable(rows);
@@ -149,75 +155,123 @@ function showMessage(text, type) {
 }
 
 /**
- * Renderiza estadísticas de los datos
+ * Renderiza estadísticas completas (Tarea 1 y 2 de la Asignación)
  */
 function renderStats(rows, interval) {
+  // 1. PREPARAR DATOS
+  const dailyReturns = []; 
   const closes = rows.map(r => r.close);
-  const returns = [];
   
-  for (let i = 1; i < closes.length; i++) {
-    returns.push((closes[i] - closes[i-1]) / closes[i-1]);
+  // Nombres para los días
+  const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  const dayStats = {}; // Acumulador por día
+
+  for (let i = 1; i < rows.length; i++) {
+    const currentPrice = rows[i].close;
+    const prevPrice = rows[i-1].close;
+    
+    // Rendimiento simple: (Actual - Anterior) / Anterior
+    const ret = (currentPrice - prevPrice) / prevPrice;
+    
+    dailyReturns.push({
+      date: rows[i].date,
+      value: ret,
+      dayOfWeek: new Date(rows[i].timestamp * 1000).getDay() // 0-6
+    });
+
+    // Agrupar por día de la semana
+    const dayIndex = new Date(rows[i].timestamp * 1000).getDay();
+    if (!dayStats[dayIndex]) dayStats[dayIndex] = [];
+    dayStats[dayIndex].push(ret);
   }
+
+  // 2. CÁLCULOS ESTADÍSTICOS
+  const values = dailyReturns.map(x => x.value);
   
-  const avg = returns.reduce((a, b) => a + b, 0) / returns.length;
-  const sortedReturns = [...returns].sort((a, b) => a - b);
-  const median = sortedReturns[Math.floor(sortedReturns.length / 2)];
+  // Promedio
+  const avg = values.reduce((a, b) => a + b, 0) / values.length;
   
-  const variance = returns.reduce((sum, r) => sum + Math.pow(r - avg, 2), 0) / returns.length;
+  // Mediana
+  const sortedValues = [...values].sort((a, b) => a - b);
+  const median = sortedValues[Math.floor(sortedValues.length / 2)];
+  
+  // Desviación Estándar
+  const variance = values.reduce((sum, r) => sum + Math.pow(r - avg, 2), 0) / values.length;
   const stdDev = Math.sqrt(variance);
   
-  const min = Math.min(...closes);
-  const max = Math.max(...closes);
+  // Retorno Total
   const totalReturn = (closes[closes.length - 1] - closes[0]) / closes[0];
+
+  // 3. RANKING (Top 5 y Bottom 5)
+  const sortedByReturn = [...dailyReturns].sort((a, b) => b.value - a.value);
+  const best5 = sortedByReturn.slice(0, 5);
+  const worst5 = sortedByReturn.slice(-5).reverse();
+
+  // 4. ANÁLISIS SEMANAL (Render HTML)
+  let dayAnalysisHTML = '<div class="stat-card full-width"><h3>📅 Patrones por Día de la Semana</h3><div class="days-grid">';
   
-  // Calcular volatilidad anualizada según el intervalo
-  let periodsPerYear;
-  switch(interval) {
-    case '1m': periodsPerYear = 252 * 6.5 * 60; break;
-    case '5m': periodsPerYear = 252 * 6.5 * 12; break;
-    case '15m': periodsPerYear = 252 * 6.5 * 4; break;
-    case '30m': periodsPerYear = 252 * 6.5 * 2; break;
-    case '1h': periodsPerYear = 252 * 6.5; break;
-    case '1d': periodsPerYear = 252; break;
-    case '1wk': periodsPerYear = 52; break;
-    case '1mo': periodsPerYear = 12; break;
-    default: periodsPerYear = 252;
-  }
-  
-  const annualVolatility = stdDev * Math.sqrt(periodsPerYear);
-  
+  // Recorremos Lunes(1) a Viernes(5)
+  [1, 2, 3, 4, 5].forEach(dayIdx => {
+    const returnsForDay = dayStats[dayIdx] || [];
+    if (returnsForDay.length > 0) {
+      const avgDay = returnsForDay.reduce((a,b)=>a+b,0) / returnsForDay.length;
+      const colorClass = avgDay >= 0 ? 'text-green' : 'text-red';
+      dayAnalysisHTML += `
+        <div class="day-stat">
+          <span class="day-name">${dayNames[dayIdx]}</span>
+          <span class="day-value ${colorClass}">${(avgDay * 100).toFixed(2)}%</span>
+        </div>`;
+    } else {
+      dayAnalysisHTML += `
+        <div class="day-stat">
+          <span class="day-name">${dayNames[dayIdx]}</span>
+          <span class="day-value">-</span>
+        </div>`;
+    }
+  });
+  dayAnalysisHTML += '</div></div>';
+
+  // Helper para filas de tabla
+  const generateTableRows = (list) => {
+    return list.map(item => `
+      <tr>
+        <td style="font-size:0.8rem; color:#9ca3af;">${item.date.split(' ')[0]}</td>
+        <td style="font-weight:bold; color: ${item.value >= 0 ? '#4ade80' : '#f87171'}">
+          ${(item.value * 100).toFixed(2)}%
+        </td>
+      </tr>
+    `).join('');
+  };
+
+  // 5. INYECTAR EN DOM
   document.getElementById('statsGrid').innerHTML = `
-    <div class="stat-card">
-      <div class="stat-label">Registros</div>
-      <div class="stat-value">${rows.length}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Precio Mín</div>
-      <div class="stat-value">$${min.toFixed(2)}</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Precio Máx</div>
-      <div class="stat-value">$${max.toFixed(2)}</div>
-    </div>
     <div class="stat-card">
       <div class="stat-label">Retorno Total</div>
       <div class="stat-value ${totalReturn < 0 ? 'negative' : ''}">${(totalReturn * 100).toFixed(2)}%</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Retorno Promedio</div>
-      <div class="stat-value ${avg < 0 ? 'negative' : ''}">${(avg * 100).toFixed(4)}%</div>
+      <div class="stat-label">Promedio Diario</div>
+      <div class="stat-value ${avg < 0 ? 'negative' : ''}">${(avg * 100).toFixed(2)}%</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Mediana</div>
-      <div class="stat-value">${(median * 100).toFixed(4)}%</div>
+      <div class="stat-value">${(median * 100).toFixed(2)}%</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Desv. Estándar</div>
-      <div class="stat-value">${(stdDev * 100).toFixed(4)}%</div>
+      <div class="stat-label">Volatilidad (StdDev)</div>
+      <div class="stat-value" style="color: #fbbf24">${(stdDev * 100).toFixed(2)}%</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Vol. Anual</div>
-      <div class="stat-value">${(annualVolatility * 100).toFixed(2)}%</div>
+
+    ${dayAnalysisHTML}
+
+    <div class="stat-card wide">
+      <div class="stat-label">🚀 Mejores 5 Días</div>
+      <table><tbody>${generateTableRows(best5)}</tbody></table>
+    </div>
+    
+    <div class="stat-card wide">
+      <div class="stat-label">💀 Peores 5 Días</div>
+      <table><tbody>${generateTableRows(worst5)}</tbody></table>
     </div>
   `;
   
@@ -225,7 +279,7 @@ function renderStats(rows, interval) {
 }
 
 /**
- * Renderiza el gráfico de precios
+ * Renderiza el gráfico de precios con Chart.js
  */
 function renderChart(rows, symbol, interval) {
   const labels = rows.map(r => r.date);
@@ -245,29 +299,39 @@ function renderChart(rows, symbol, interval) {
         backgroundColor: 'rgba(34, 197, 94, 0.1)',
         borderWidth: 2,
         pointRadius: 0,
-        fill: true
+        fill: true,
+        tension: 0.1
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: true,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
       scales: {
         x: { 
           ticks: { 
             maxTicksLimit: 15, 
             color: '#9ca3af'
-          } 
+          },
+          grid: { color: '#334155' }
         },
         y: { 
           ticks: { 
             color: '#9ca3af',
             callback: (value) => '$' + value.toFixed(2)
-          }
+          },
+          grid: { color: '#334155' }
         }
       },
       plugins: {
         legend: { labels: { color: '#e5e7eb' } },
         tooltip: {
+          backgroundColor: '#1e293b',
+          titleColor: '#e5e7eb',
+          bodyColor: '#e5e7eb',
           callbacks: {
             label: (context) => `Precio: $${context.parsed.y.toFixed(2)}`
           }
@@ -280,14 +344,17 @@ function renderChart(rows, symbol, interval) {
 }
 
 /**
- * Renderiza la tabla de datos históricos
+ * Renderiza la tabla de datos raw
  */
 function renderTable(rows) {
   document.getElementById('rowCount').textContent = rows.length;
   
-  let html = '<table><thead><tr><th>Fecha/Hora</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Volume</th></tr></thead><tbody>';
+  let html = '<table><thead><tr><th>Fecha</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Vol</th></tr></thead><tbody>';
   
-  rows.forEach(r => {
+  // Mostramos solo los últimos 100 para no saturar el DOM si son muchos
+  const displayRows = rows.slice().reverse().slice(0, 100);
+  
+  displayRows.forEach(r => {
     html += `<tr>
       <td>${r.date}</td>
       <td>$${r.open.toFixed(2)}</td>
@@ -299,12 +366,16 @@ function renderTable(rows) {
   });
   
   html += '</tbody></table>';
+  if (rows.length > 100) {
+      html += '<p style="text-align:center; color:#94a3b8; padding:10px;">(Mostrando últimos 100 registros)</p>';
+  }
+  
   document.getElementById('tableContainer').innerHTML = html;
   document.getElementById('tablePanel').style.display = 'block';
 }
 
 /**
- * Descarga los datos como CSV
+ * Genera y descarga el CSV
  */
 function downloadCSV(rows, symbol, interval) {
   let csv = 'DateTime,Open,High,Low,Close,Volume\n';

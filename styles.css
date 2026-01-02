@@ -123,6 +123,7 @@ button:disabled {
   transform: none; 
 }
 
+/* Grid de estadísticas principal */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -154,6 +155,58 @@ button:disabled {
 .stat-value.negative { 
   color: #ef4444; 
 }
+
+/* === NUEVOS ESTILOS PARA LA TAREA DE ANÁLISIS === */
+
+/* Tarjetas anchas (para tablas de mejores/peores) */
+.stat-card.wide {
+  grid-column: span 2; 
+  text-align: left;
+}
+
+/* Tarjeta de ancho completo (para análisis semanal) */
+.stat-card.full-width {
+  grid-column: 1 / -1;
+  text-align: center;
+}
+
+.stat-card.full-width h3 {
+  font-size: 1rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+/* Grid de días de la semana */
+.days-grid {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+  background: #1e293b;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.day-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.day-name {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.day-value {
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.text-green { color: #4ade80; }
+.text-red { color: #f87171; }
+
+/* ================================================= */
 
 canvas {
   background: #020617;
@@ -269,4 +322,15 @@ td:first-child, th:first-child {
   color: #94a3b8;
   margin-top: 0.3rem;
   font-style: italic;
+}
+
+/* Media Query para móviles */
+@media (max-width: 600px) {
+  .stat-card.wide, .stat-card.full-width {
+    grid-column: span 1;
+  }
+  .days-grid {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
 }
