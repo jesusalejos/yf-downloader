@@ -1,17 +1,18 @@
 // download.js - Script de terminal independiente
 import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 // ========== CONFIGURACIÓN RÁPIDA ==========
 
 const symbol = 'BTC-USD';
-const dateFrom = '2023-01-01';
+const dateFrom = '2024-01-01';
 const dateTo = '2026-01-01';
 const interval = '1d';
 const outputFile = `data_${symbol}_${interval}.csv`;
 
 // ==========================================
 
-async function main() {
+export async function main() {
   console.log(`📥 Descargando datos de ${symbol}...`);
   
   const period1 = Math.floor(new Date(dateFrom).getTime() / 1000);
@@ -55,6 +56,9 @@ async function main() {
   console.log(`📊 Total de registros: ${ts.length}`);
 }
 
-main().catch(err => {
-  console.error('❌ Error:', err.message);
-});
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch(err => {
+    console.error('❌ Error:', err.message);
+    process.exitCode = 1;
+  });
+}
