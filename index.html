@@ -72,7 +72,15 @@
         </div>
       </div>
       
-      <button id="downloadBtn" onclick="downloadData()">🚀 Descargar y Analizar</button>
+      <div class="actions-container">
+        <button id="btnVisualize" onclick="handleVisualize()">
+          📊 Visualizar Datos
+        </button>
+        
+        <button id="btnDownload" onclick="handleDownload()" class="btn-secondary">
+          💾 Descargar CSV
+        </button>
+      </div>
       
       <div id="loading" class="loading">
         <div class="spinner"></div>

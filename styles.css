@@ -334,3 +334,34 @@ td:first-child, th:first-child {
     gap: 10px;
   }
 }
+
+/* === NUEVOS ESTILOS PARA LOS BOTONES === */
+
+.actions-container {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap; /* Para que se adapte a móviles */
+}
+
+.actions-container button {
+  flex: 1; /* Ambos botones ocupan el mismo ancho */
+  min-width: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* El botón secundario (Descargar) con otro color */
+.btn-secondary {
+  background: #1e293b; /* Color oscuro */
+  border: 1px solid #334155;
+  color: #94a3b8;
+}
+
+.btn-secondary:hover {
+  background: #334155;
+  color: #e5e7eb;
+  border-color: #3b82f6; /* Borde azul al pasar el mouse */
+}
