@@ -29,7 +29,6 @@ function updateIntervalNote() {
 
 /**
  * FUNCIÓN CENTRAL: Solo obtiene y limpia los datos
- * Retorna 'rows' si todo sale bien, o null si falla.
  */
 async function fetchDataShared(sourceButtonId) {
   const symbol = document.getElementById('symbol').value.trim();
@@ -62,7 +61,7 @@ async function fetchDataShared(sourceButtonId) {
     const period1 = Math.floor(new Date(dateFrom).getTime() / 1000);
     const period2 = Math.floor(new Date(dateTo).getTime() / 1000);
     
-    // Usamos el Proxy Público (Compatible con GitHub Pages)
+    // Usamos el Proxy Público
     const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&period1=${period1}&period2=${period2}`;
     const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`;
     
@@ -127,9 +126,9 @@ async function handleVisualize() {
     showMessage(`✅ ${rows.length} datos cargados. Visualización actualizada.`, 'success');
     renderStats(rows);
     renderChart(rows, document.getElementById('symbol').value, document.getElementById('interval').value);
+    // AQUÍ LLAMAMOS A LA TABLA CORREGIDA
     renderTable(rows);
     
-    // Aseguramos que los paneles sean visibles
     document.getElementById('statsPanel').style.display = 'block';
     document.getElementById('chartPanel').style.display = 'block';
     document.getElementById('tablePanel').style.display = 'block';
@@ -140,9 +139,6 @@ async function handleVisualize() {
  * ACCIÓN 2: Solo Descargar
  */
 async function handleDownload() {
-  // Si ya tenemos datos en memoria (de una visualización previa), ¿para qué gastar internet?
-  // Pero si el usuario cambió las fechas, debemos recargar. 
-  // Para seguridad y simplicidad, siempre recargamos los datos frescos de la API.
   const rows = await fetchDataShared('btnDownload');
   if (rows) {
     downloadCSV(rows, document.getElementById('symbol').value, document.getElementById('interval').value);
@@ -155,7 +151,7 @@ function showMessage(text, type) {
     `<div class="alert ${type === 'success' ? 'success' : type === 'warning' ? 'warning' : ''}">${text}</div>`;
 }
 
-// --- FUNCIONES DE RENDERIZADO (Iguales que antes) ---
+// --- FUNCIONES DE RENDERIZADO ---
 
 function renderStats(rows) {
   const dailyReturns = []; 
@@ -240,13 +236,37 @@ function renderChart(rows, symbol, interval) {
   });
 }
 
+/**
+ * --- TABLA CORREGIDA ---
+ * Ahora incluye todas las columnas y orden descendente.
+ */
 function renderTable(rows) {
   document.getElementById('rowCount').textContent = rows.length;
-  let html = '<table><thead><tr><th>Fecha</th><th>Cierre</th><th>Vol</th></tr></thead><tbody>';
-  rows.slice().reverse().slice(0, 50).forEach(r => {
-    html += `<tr><td>${r.date}</td><td>$${r.close.toFixed(2)}</td><td>${r.volume.toLocaleString()}</td></tr>`;
+  
+  // Encabezados completos
+  let html = '<table><thead><tr><th>Fecha</th><th>Open</th><th>High</th><th>Low</th><th>Close</th><th>Vol</th></tr></thead><tbody>';
+  
+  // Ordenar descendente (Newest first) y limitar a 100 para no saturar
+  const rowsDesc = rows.slice().reverse().slice(0, 100);
+  
+  rowsDesc.forEach(r => {
+    html += `<tr>
+      <td>${r.date}</td>
+      <td>$${r.open.toFixed(2)}</td>
+      <td>$${r.high.toFixed(2)}</td>
+      <td>$${r.low.toFixed(2)}</td>
+      <td>$${r.close.toFixed(2)}</td>
+      <td>${r.volume.toLocaleString()}</td>
+    </tr>`;
   });
+  
   html += '</tbody></table>';
+  
+  // Aviso si hay más datos ocultos
+  if (rows.length > 100) {
+    html += '<p style="text-align:center; color:#94a3b8; padding:10px; font-size:0.8rem;">(Mostrando los 100 registros más recientes)</p>';
+  }
+
   document.getElementById('tableContainer').innerHTML = html;
 }
 
