@@ -3,112 +3,89 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Analizador de Trading</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>Trading Lab - MVC Modular</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+
   <div class="container">
-    <header>
-      <h1>📊 Analizador de Trading Sistemático</h1>
-      <p class="subtitle">Descarga directa desde Yahoo Finance</p>
+    <header class="header">
+      <h1>🏛️ Trading Lab MVC</h1>
+      <p style="color: #94a3b8;">Arquitectura Modular Separada</p>
     </header>
 
     <div class="panel">
-      <h2>🎯 Configurar y Descargar Datos</h2>
-      
-      <div class="controls-grid">
-        <div class="control-group">
-          <label for="symbol">Símbolo del Activo</label>
-          <input type="text" id="symbol" value="BTC-USD" placeholder="Ej: BTC-USD, ETH-USD, AAPL">
-          <div class="quick-presets">
-            <button class="preset-btn" onclick="setSymbol('BTC-USD')">Bitcoin</button>
-            <button class="preset-btn" onclick="setSymbol('ETH-USD')">Ethereum</button>
-            <button class="preset-btn" onclick="setSymbol('SPY')">S&P 500</button>
-            <button class="preset-btn" onclick="setSymbol('QQQ')">Nasdaq</button>
-            <button class="preset-btn" onclick="setSymbol('AAPL')">Apple</button>
-            <button class="preset-btn" onclick="setSymbol('TSLA')">Tesla</button>
-          </div>
+      <div class="grid">
+        <div>
+          <label for="inputSymbol">Activo</label>
+          <input type="text" id="inputSymbol" value="BTC-USD">
         </div>
-        
-        <div class="control-group">
-          <label for="dateFrom">Fecha Desde</label>
-          <input type="date" id="dateFrom" value="2023-01-01">
+        <div>
+          <label for="inputDateFrom">Desde</label>
+          <input type="date" id="inputDateFrom" value="2024-01-01">
         </div>
-        
-        <div class="control-group">
-          <label for="dateTo">Fecha Hasta</label>
-          <input type="date" id="dateTo">
+        <div>
+          <label for="inputDateTo">Hasta</label>
+          <input type="date" id="inputDateTo">
         </div>
-        
-        <div class="control-group">
-          <label for="interval">
-            Intervalo (Timeframe)
-            <span class="info-icon" title="Intervalos pequeños (1m, 5m) solo permiten 60 días de datos">ℹ</span>
-          </label>
-          <select id="interval" onchange="updateIntervalNote()">
-            <optgroup label="📊 Intradiarios (Trading Diario)">
-              <option value="1m">1 minuto</option>
-              <option value="2m">2 minutos</option>
-              <option value="5m">5 minutos</option>
-              <option value="15m">15 minutos</option>
-              <option value="30m">30 minutos</option>
-              <option value="1h">1 hora</option>
-              <option value="90m">90 minutos</option>
-            </optgroup>
-            <optgroup label="📈 Diarios y Semanales">
-              <option value="1d" selected>1 día</option>
-              <option value="5d">5 días</option>
-              <option value="1wk">1 semana</option>
-            </optgroup>
-            <optgroup label="📅 Mensuales y Trimestrales">
-              <option value="1mo">1 mes</option>
-              <option value="3mo">3 meses</option>
-            </optgroup>
+        <div>
+          <label for="inputInterval">Intervalo</label>
+          <select id="inputInterval">
+            <option value="1m">1 Minuto</option>
+            <option value="5m">5 Minutos</option>
+            <option value="1h">1 Hora</option>
+            <option value="1d" selected>1 Día</option>
+            <option value="1wk">1 Semana</option>
           </select>
-          <div class="interval-note" id="intervalNote">
-            💡 Intervalo diario: ideal para análisis de 2 años
-          </div>
         </div>
       </div>
-      
-      <div class="actions-container">
-        <button id="btnVisualize" onclick="handleVisualize()">
-          📊 Visualizar Datos
-        </button>
-        
-        <button id="btnDownload" onclick="handleDownload()" class="btn-secondary">
-          💾 Descargar CSV
-        </button>
+
+      <div class="btn-group">
+        <button id="btnVisualize" class="btn-viz">📊 Visualizar Datos</button>
+        <button id="btnDownload" class="btn-down">💾 Descargar CSV</button>
       </div>
       
-      <div id="loading" class="loading">
-        <div class="spinner"></div>
-        <p>Descargando datos de Yahoo Finance...</p>
+      <div id="loader" class="loader">⏳ Obteniendo datos de Yahoo Finance...</div>
+    </div>
+
+    <div id="resultsContainer" class="hidden">
+      <div class="tabs">
+        <button class="tab active" data-target="tab-stats">Estadísticas</button>
+        <button class="tab" data-target="tab-chart">Gráfico</button>
+        <button class="tab" data-target="tab-historical">Histórico</button>
       </div>
-      
-      <div id="message"></div>
-    </div>
 
-    <div class="panel" id="statsPanel" style="display: none;">
-      <h2>📈 Análisis Estadístico</h2>
-      <div class="stats-grid" id="statsGrid"></div>
-    </div>
+      <div id="tab-stats" class="panel tab-content">
+        <div class="grid" id="statsGrid"></div>
+      </div>
 
-    <div class="panel" id="chartPanel" style="display: none;">
-      <h2>📉 Gráfico de Precios</h2>
-      <canvas id="priceChart"></canvas>
-    </div>
+      <div id="tab-chart" class="panel tab-content hidden">
+        <canvas id="mainChart" style="height: 400px; width: 100%;"></canvas>
+      </div>
 
-    <div class="panel" id="tablePanel" style="display: none;">
-      <h2>📋 Datos Históricos (OHLCV)</h2>
-      <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem;">
-        Mostrando <strong id="rowCount">0</strong> registros
-      </p>
-      <div class="table-container" id="tableContainer"></div>
+      <div id="tab-historical" class="panel tab-content hidden">
+        <div class="table-scroll">
+          <table id="historicalTable">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Open</th>
+                <th>High</th>
+                <th>Low</th>
+                <th>Close</th>
+                <th>Volumen</th>
+                <th>Rendimiento</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script type="module" src="main.js"></script>
+
 </body>
 </html>
