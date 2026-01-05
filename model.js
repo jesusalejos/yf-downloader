@@ -97,21 +97,90 @@ export default class TradingModel {
     if (interval === '1h' && days > 730) throw new Error("Intervalo 1h solo permite últimos 2 años.");
   }
 
+  // método getStatistics() 
+
   getStatistics() {
     if (this.data.length === 0) return null;
+
+    // 1. Extraemos solo los rendimientos (returns)
     const returns = this.data.map(d => d.return);
     const closes = this.data.map(d => d.close);
+    
+    // 2. CÁLCULO DEL PROMEDIO (Media Aritmética)
+    // Sumamos todo y dividimos entre la cantidad
     const avg = returns.reduce((a, b) => a + b, 0) / returns.length;
-    const variance = returns.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / returns.length;
+    
+    // 3. CÁLCULO DE LA MEDIANA
+    // Ordenamos de menor a mayor y buscamos el valor del centro
+    const sortedReturns = [...returns].sort((a, b) => a - b);
+    const mid = Math.floor(sortedReturns.length / 2);
+    // Si es par, promediamos los dos del medio; si es impar, tomamos el del medio
+    const median = sortedReturns.length % 2 !== 0
+      ? sortedReturns[mid]
+      : (sortedReturns[mid - 1] + sortedReturns[mid]) / 2;
+
+    // 4. CÁLCULO DE LA DESVIACIÓN ESTÁNDAR (Volatilidad)
+    const variance = returns.reduce((sum, val) => sum + Math.pow(val - avg, 2), 0) / returns.length;
     const stdDev = Math.sqrt(variance);
+
+    // Retorno Total acumulado
     const totalReturn = (closes[closes.length - 1] - closes[0]) / closes[0];
 
+    // Devolvemos el paquete completo con las etiquetas correctas
     return {
       count: this.data.length,
       lastPrice: closes[closes.length - 1],
-      avgReturn: avg,
-      volatility: stdDev,
-      totalReturn: totalReturn
+      totalReturn: totalReturn,
+      
+      // Aquí están las 3 joyas de la Tarea 1.2:
+      avgReturn: avg,       // El Promedio
+      medianReturn: median, // La Mediana
+      volatility: stdDev    // La Desviación Estándar
+    };
+  }
+//Método para días extremos
+
+// En model.js, agrega este nuevo método:
+
+  getExtremes() {
+    if (this.data.length === 0) return null;
+
+    // Creamos una copia para no desordenar los datos originales
+    // Ordenamos por retorno (de mayor a menor)
+    const sorted = [...this.data].sort((a, b) => b.return - a.return);
+
+    return {
+      best: sorted.slice(0, 5),                // Los 5 primeros (Más altos)
+      worst: sorted.slice(-5).reverse()        // Los 5 últimos (Más bajos), invertidos para ver el peor arriba
+    };
+  }
+
+  //patron dias de la semana
+// En model.js, agrega este método a la clase:
+
+  getSeasonality() {
+    if (this.data.length === 0) return null;
+
+    // Inicializamos acumuladores (0=Domingo, 1=Lunes, ..., 6=Sábado)
+    const sums = [0, 0, 0, 0, 0, 0, 0];
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+
+    // Recorremos todos los datos
+    this.data.forEach(row => {
+      // row.dateObj ya es un objeto Date. getDay() devuelve 0-6.
+      const dayIndex = row.dateObj.getDay();
+      
+      sums[dayIndex] += row.return;
+      counts[dayIndex]++;
+    });
+
+    // Calculamos promedios
+    // Si count es 0 (ej: fines de semana en bolsa tradicional), devolvemos 0
+    const averages = sums.map((sum, i) => counts[i] > 0 ? sum / counts[i] : 0);
+
+    return {
+      averages: averages, // Array de 7 números
+      counts: counts      // Cuántos días de cada uno hubo
     };
   }
 

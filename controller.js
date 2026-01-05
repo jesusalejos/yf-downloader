@@ -20,6 +20,7 @@ export default class TradingController {
     try {
       this.view.toggleLoading(true);
 
+      // 1. Pedir datos
       const data = await this.model.fetchData(
         params.symbol, 
         params.interval, 
@@ -27,12 +28,25 @@ export default class TradingController {
         params.dateTo
       );
 
+      // 2. Pedir estadísticas
       const stats = this.model.getStatistics();
+      
+      // 3. NUEVO: Pedir extremos (Top 5)
+      const extremes = this.model.getExtremes();
 
+      // NUEVO: Calcular Patrones
+      const seasonality = this.model.getSeasonality();
+
+      // 4. Actualizar la Vista (pasamos ambos objetos)
       this.view.showResultsPanel();
-      this.view.renderStatistics(stats);
+      
+      // ¡Aquí está el cambio clave! Pasamos stats Y extremes
+      this.view.renderStatistics(stats, extremes); 
+      
       this.view.renderChart(data, params.symbol);
       this.view.renderHistoricalTable(data);
+      // NUEVO: Renderizar gráfico de patrones
+      this.view.renderSeasonalityChart(seasonality);
 
     } catch (error) {
       console.error(error);
