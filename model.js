@@ -214,44 +214,46 @@ export default class TradingModel {
   getStreaksAnalysis() {
     if (this.data.length === 0) return null;
 
-    let currentType = 0; // 1 = Positiva, -1 = Negativa
+    let currentType = 0; 
     let currentCount = 0;
     let currentCumRet = 0;
     let currentStartDate = this.data[0].dateStr;
 
-    // Récords (lo que ya tenías)
     let maxWinStreak = { count: 0, return: 0, start: '-', end: '-' };
     let maxLossStreak = { count: 0, return: 0, start: '-', end: '-' };
     let maxReturnStreak = { count: 0, return: -Infinity, start: '-', end: '-' };
     let maxDrawdownStreak = { count: 0, return: Infinity, start: '-', end: '-' };
 
-    // NUEVO: Array para guardar TODAS las rachas
     let history = [];
 
     this.data.forEach((row, i) => {
       const ret = row.return;
       const isPositive = ret >= 0;
 
-      // Continuar racha
       if (i > 0 && ((isPositive && currentType === 1) || (!isPositive && currentType === -1))) {
+        // Continúa la racha
         currentCount++;
         currentCumRet = ((1 + currentCumRet) * (1 + ret)) - 1;
       
       } else {
-        // La racha terminó (o es el primer dato)
+        // CAMBIO DE RACHA
         if (i > 0) {
           const prevDate = this.data[i-1].dateStr;
           
-          // 1. GUARDAR EN EL HISTORIAL (NUEVO)
+          // NUEVO: Capturar el retorno del día siguiente (día actual 'row')
+          // Como la racha terminó ayer (i-1), hoy (i) es el "día siguiente"
+          const nextDayReturn = row.return; 
+
           history.push({
             type: currentType === 1 ? 'WIN' : 'LOSS',
             count: currentCount,
             return: currentCumRet,
             start: currentStartDate,
-            end: prevDate
+            end: prevDate,
+            nextRet: nextDayReturn // Guardamos qué pasó después
           });
 
-          // 2. Calcular Récords (Igual que antes)
+          // Récords (Igual que antes)
           if (currentType === 1) { 
             if (currentCount > maxWinStreak.count) maxWinStreak = { count: currentCount, return: currentCumRet, start: currentStartDate, end: prevDate };
             if (currentCumRet > maxReturnStreak.return) maxReturnStreak = { count: currentCount, return: currentCumRet, start: currentStartDate, end: prevDate };
@@ -261,7 +263,7 @@ export default class TradingModel {
           }
         }
 
-        // Iniciar nueva racha
+        // Iniciar nueva
         currentType = isPositive ? 1 : -1;
         currentCount = 1;
         currentCumRet = ret;
@@ -269,15 +271,100 @@ export default class TradingModel {
       }
     });
 
-    // Devolvemos los récords Y el historial completo
     return {
       longestWin: maxWinStreak,
       longestLoss: maxLossStreak,
       bestReturn: maxReturnStreak,
       worstReturn: maxDrawdownStreak,
-      history: history.reverse() // Invertimos para ver las más recientes primero
+      history: history.reverse()
     };
   }
+  
+//Calcula el ATR (Average True Range) para medir volatilidad     
+    calculateATR(period = 14) {
+        if (this.data.length === 0) return [];
+        
+        let trs = [];
+        // 1. Calcular True Range (TR)
+        for (let i = 1; i < this.data.length; i++) {
+            const high = this.data[i].high;
+            const low = this.data[i].low;
+            const prevClose = this.data[i - 1].close;
+            
+            const tr = Math.max(high - low, Math.abs(high - prevClose), Math.abs(low - prevClose));
+            trs.push(tr);
+        }
+
+        // 2. Calcular Media Móvil del TR (ATR)
+        let atrs = new Array(period).fill(null); // Relleno inicial
+        for (let i = period; i < trs.length; i++) {
+            const sum = trs.slice(i - period, i).reduce((a, b) => a + b, 0);
+            atrs.push(sum / period);
+        }
+        return [null, ...atrs]; // Ajuste para alinear con el array de datos
+    }
+
+    /**
+     * Lógica principal: Detecta impulsos y mide la corrección
+     */
+    runCorrectionAnalysis(atrPeriod = 14, impulseMultiplier = 2.0, lookForward = 5) {
+        const atrs = this.calculateATR(atrPeriod);
+        const events = [];
+
+        // Empezamos después del periodo ATR y terminamos antes del margen de "futuro"
+        for (let i = atrPeriod + 1; i < this.data.length - lookForward; i++) {
+            const current = this.data[i];
+            const currentATR = atrs[i];
+            
+            if (!currentATR) continue;
+
+            const range = current.close - current.open; // Tamaño del cuerpo
+            
+            // CONDICIÓN: El cuerpo es X veces mayor al ATR (Movimiento fuerte)
+            if (range > (currentATR * impulseMultiplier)) {
+                
+                // Analizar los siguientes días
+                const impulseHigh = current.close;
+                let minPrice = impulseHigh;
+                let daysToLow = 0;
+
+                for (let j = 1; j <= lookForward; j++) {
+                    const futureCandle = this.data[i + j];
+                    if (futureCandle.low < minPrice) {
+                        minPrice = futureCandle.low;
+                        daysToLow = j;
+                    }
+                }
+
+                // Guardar métricas del evento
+                events.push({
+                    date: current.date,
+                    impulseSize: (range / currentATR).toFixed(2) + "x ATR",
+                    correctionDepthPct: (((impulseHigh - minPrice) / impulseHigh) * 100).toFixed(2),
+                    correctionDepthATR: ((impulseHigh - minPrice) / currentATR).toFixed(2),
+                    daysToBottom: daysToLow
+                });
+            }
+        }
+
+        // Calcular promedios para el resumen
+        if (events.length > 0) {
+            const avgDepth = events.reduce((sum, e) => sum + parseFloat(e.correctionDepthATR), 0) / events.length;
+            const avgDays = events.reduce((sum, e) => sum + e.daysToBottom, 0) / events.length;
+            
+            this.analysisResults = {
+                totalEvents: events.length,
+                avgCorrectionATR: avgDepth.toFixed(2),
+                avgDuration: avgDays.toFixed(1),
+                details: events
+            };
+        } else {
+            this.analysisResults = { error: "No se encontraron eventos con esos parámetros." };
+        }
+
+        return this.analysisResults;
+    }
+
   
   getCSVContent() {
     let csv = 'Date,Open,High,Low,Close,Volume,Return(%)\n';

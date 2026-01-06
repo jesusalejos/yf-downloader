@@ -3,40 +3,43 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trading Lab - MVC Modular</title>
+  <title>Trading Lab - Análisis Cuantitativo</title>
+  
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <div class="container">
+    
     <header class="header">
-      <h1>🏛️ Trading Lab MVC</h1>
-      <p style="color: #94a3b8;">Arquitectura Modular Separada</p>
+      <h1>🏛️ Trading Lab <span style="font-weight:400; color:#64748b;">| MVC System</span></h1>
     </header>
 
     <div class="panel">
       <div class="grid">
         <div>
-          <label for="inputSymbol">Activo</label>
-          <input type="text" id="inputSymbol" value="BTC-USD">
+          <label for="inputSymbol">Activo (Yahoo Ticker)</label>
+          <input type="text" id="inputSymbol" value="BTC-USD" placeholder="Ej: AAPL, BTC-USD">
         </div>
+        
         <div>
           <label for="inputDateFrom">Desde</label>
-          <input type="date" id="inputDateFrom" value="2024-01-01">
+          <input type="date" id="inputDateFrom" value="2020-01-01">
         </div>
+        
         <div>
           <label for="inputDateTo">Hasta</label>
           <input type="date" id="inputDateTo">
         </div>
+        
         <div>
           <label for="inputInterval">Intervalo</label>
           <select id="inputInterval">
-            <option value="1m">1 Minuto</option>
-            <option value="5m">5 Minutos</option>
-            <option value="1h">1 Hora</option>
-            <option value="1d" selected>1 Día</option>
-            <option value="1wk">1 Semana</option>
+            <option value="1d" selected>1 Día (Diario)</option>
+            <option value="1wk">1 Semana (Semanal)</option>
+            <option value="1mo">1 Mes (Mensual)</option>
           </select>
         </div>
       </div>
@@ -46,76 +49,76 @@
         <button id="btnDownload" class="btn-down">💾 Descargar CSV</button>
       </div>
       
-      <div id="loader" class="loader">⏳ Obteniendo datos de Yahoo Finance...</div>
+      <div id="loader" class="loader">
+        <div class="spinner"></div>
+        <p>Analizando el mercado...</p>
+      </div>
     </div>
 
     <div id="resultsContainer" class="hidden">
+      
       <div class="tabs">
         <button class="tab active" data-target="tab-stats">Estadísticas</button>
-        <button class="tab" data-target="tab-chart">Gráfico</button>
+        <button class="tab" data-target="tab-chart">Gráfico Precio</button>
+        <button class="tab" data-target="tab-patterns">Patrones & Rachas</button>
         <button class="tab" data-target="tab-historical">Histórico</button>
-        <button class="tab" data-target="tab-patterns">Patrones</button>
-</div>
-
-<div id="tab-patterns" class="panel tab-content hidden">
-  <h3 style="color:#e2e8f0; margin-bottom:1rem; text-align:center;">📅 Rendimiento Promedio por Día de la Semana</h3>
-  
-  <div style="height: 400px; width: 100%;">
-    <canvas id="patternsChart"></canvas>
-  </div>
-  
-  <div style="margin-top:1rem; text-align:center; font-size:0.9rem; color:#94a3b8;">
-    <p>Este gráfico muestra el promedio de ganancia o pérdida para cada día.</p>
-    <p>Las barras <span class="text-green">Verdes</span> indican días alcistas promedio, y las <span class="text-red">Rojas</span> bajistas.</p>
-  </div>
-
-  <hr style="border: 0; border-top: 1px solid #334155; margin: 2rem 0;">
-
-  <h3 style="color:#e2e8f0; margin-bottom:1rem; text-align:center;">🗓️ Rendimiento Promedio por Mes</h3>
-  
-  <div style="height: 400px; width: 100%;">
-    <canvas id="monthlyChart"></canvas>
-  </div>
-  
-  <div style="margin-top:1rem; text-align:center; font-size:0.9rem; color:#94a3b8;">
-    <p>Identifica la estacionalidad anual. ¿Es cierto el "Sell in May"?</p>
-  </div>
-
-<hr style="border: 0; border-top: 1px solid #334155; margin: 2rem 0;">
-
-  <h3 style="color:#e2e8f0; margin-bottom:1rem; text-align:center;">🔥 Rachas y Anomalías (Streaks)</h3>
-
-  <div class="grid" id="streaksGrid">
-    </div>
-
-  <hr style="border: 0; border-top: 1px solid #334155; margin: 2rem 0;">
-
-  <h3 style="color:#e2e8f0; margin-bottom:1rem; text-align:center;">📜 Historial Completo de Rachas</h3>
-  
-  <div class="table-scroll" style="max-height: 400px;">
-    <table id="streaksTable">
-      <thead>
-        <tr>
-          <th>Tipo</th>
-          <th>Duración</th>
-          <th>Retorno Acum.</th>
-          <th>Inicio</th>
-          <th>Fin</th>
-        </tr>
-      </thead>
-      <tbody>
-        </tbody>
-    </table>
-  </div>
-
-</div>
+      </div>
 
       <div id="tab-stats" class="panel tab-content">
-        <div class="grid" id="statsGrid"></div>
+        <div class="grid" id="statsGrid">
+          </div>
       </div>
 
       <div id="tab-chart" class="panel tab-content hidden">
         <canvas id="mainChart" style="height: 400px; width: 100%;"></canvas>
+      </div>
+
+      <div id="tab-patterns" class="panel tab-content hidden">
+        
+        <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">📅 Rendimiento por Día de Semana</h3>
+        <div style="height: 300px; width: 100%; margin-bottom: 2rem;">
+          <canvas id="patternsChart"></canvas>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #334155; margin: 2rem 0;">
+
+        <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">🗓️ Estacionalidad Mensual</h3>
+        <div style="height: 300px; width: 100%; margin-bottom: 2rem;">
+          <canvas id="monthlyChart"></canvas>
+        </div>
+
+        <hr style="border:0; border-top:1px solid #334155; margin: 2rem 0;">
+
+        <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">🔥 Récords de Rachas (Streaks)</h3>
+        <div class="grid" id="streaksGrid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          </div>
+
+        <div style="margin-top: 2rem;">
+          <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">💥 Reacción Post-Movimiento Fuerte (>1.5 SD)</h3>
+          <div class="grid" id="correctionsGrid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+            </div>
+        </div>
+
+        <div style="margin-top: 2rem;">
+          <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">📜 Historial de Rachas Relevantes (≥ 4 días)</h3>
+          
+          <div class="table-scroll">
+            <table id="streaksTable">
+              <thead>
+                <tr>
+                  <th>Tipo</th>
+                  <th>Duración</th>
+                  <th>Retorno Acum.</th>
+                  <th>Inicio</th>
+                  <th>Fin</th>
+                  <th>Día Siguiente</th> </tr>
+              </thead>
+              <tbody>
+                </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
       <div id="tab-historical" class="panel tab-content hidden">
@@ -132,10 +135,12 @@
                 <th>Rendimiento</th>
               </tr>
             </thead>
-            <tbody></tbody>
+            <tbody>
+              </tbody>
           </table>
         </div>
       </div>
+
     </div>
   </div>
 
