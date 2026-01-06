@@ -15,6 +15,7 @@ export default class TradingView {
     this.resultsContainer = document.getElementById('resultsContainer');
     this.chartInstance = null;
     this.patternsChart = null;
+    this.monthlyChart = null;
 
     this.inputs.dateTo.valueAsDate = new Date();
     this._initTabs();
@@ -172,6 +173,62 @@ export default class TradingView {
     });
   }
 
+  //renderizar patrones mes
+
+renderMonthlyChart(monthlyData) {
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    // Colores dinámicos
+    const colors = monthlyData.averages.map(val => 
+      val >= 0 ? 'rgba(59, 130, 246, 0.7)' : 'rgba(239, 68, 68, 0.7)' // Azul para positivo, Rojo negativo
+    );
+    
+    const borders = monthlyData.averages.map(val => 
+      val >= 0 ? '#3b82f6' : '#ef4444'
+    );
+
+    if (this.monthlyChart) {
+      this.monthlyChart.destroy();
+    }
+
+    this.monthlyChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: months,
+        datasets: [{
+          label: 'Retorno Promedio Mensual (%)',
+          data: monthlyData.averages.map(val => val * 100),
+          backgroundColor: colors,
+          borderColor: borders,
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: '#334155' },
+            ticks: { color: '#94a3b8' }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#94a3b8' }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `Promedio: ${ctx.parsed.y.toFixed(4)}%`
+            }
+          }
+        }
+      }
+    });
+  }
   _initTabs() {
     const tabs = document.querySelectorAll('.tab');
     const contents = document.querySelectorAll('.tab-content');
@@ -254,4 +311,84 @@ renderSeasonalityChart(seasonalityData) {
     });
   }
 
+  // rachas
+  // REEMPLAZAR EN view.js
+
+  renderStreaks(streaks) {
+    const container = document.getElementById('streaksGrid');
+    const tableBody = document.querySelector('#streaksTable tbody'); 
+    
+    const fmtPct = (val) => `${(val * 100).toFixed(2)}%`;
+    const fmtDate = (dateStr) => dateStr && dateStr.length >= 10 ? dateStr.slice(0, 10) : '-';
+    
+    const dateHtml = (s, e) => `
+      <div style="font-size:0.75rem; color:#64748b; margin-top:0.5rem; border-top:1px solid #334155; padding-top:0.3rem;">
+        <div>📅 ${fmtDate(s)} ⮕ ${fmtDate(e)}</div>
+      </div>
+    `;
+
+    // 1. PINTAR LAS TARJETAS DE RÉCORDS (Esto se queda igual)
+    container.innerHTML = `
+      <div class="stat-card" style="border-color: #22c55e;">
+        <div style="color:#22c55e; font-weight:bold; font-size:0.9rem;">Racha Alcista Más Larga</div>
+        <div class="stat-val text-green">${streaks.longestWin.count} Días</div>
+        <div style="font-size:0.8rem; color:#94a3b8">Generó: ${fmtPct(streaks.longestWin.return)}</div>
+        ${dateHtml(streaks.longestWin.start, streaks.longestWin.end)}
+      </div>
+
+      <div class="stat-card" style="border-color: #4ade80;">
+        <div style="color:#4ade80; font-weight:bold; font-size:0.9rem;">Mejor "Run" Acumulado</div>
+        <div class="stat-val text-green">${fmtPct(streaks.bestReturn.return)}</div>
+        <div style="font-size:0.8rem; color:#94a3b8">En ${streaks.bestReturn.count} días</div>
+        ${dateHtml(streaks.bestReturn.start, streaks.bestReturn.end)}
+      </div>
+
+      <div class="stat-card" style="border-color: #ef4444;">
+        <div style="color:#ef4444; font-weight:bold; font-size:0.9rem;">Racha Bajista Más Larga</div>
+        <div class="stat-val text-red">${streaks.longestLoss.count} Días</div>
+        <div style="font-size:0.8rem; color:#94a3b8">Perdió: ${fmtPct(streaks.longestLoss.return)}</div>
+        ${dateHtml(streaks.longestLoss.start, streaks.longestLoss.end)}
+      </div>
+
+      <div class="stat-card" style="border-color: #b91c1c;">
+        <div style="color:#b91c1c; font-weight:bold; font-size:0.9rem;">Peor Caída Consecutiva</div>
+        <div class="stat-val text-red">${fmtPct(streaks.worstReturn.return)}</div>
+        <div style="font-size:0.8rem; color:#94a3b8">En ${streaks.worstReturn.count} días</div>
+        ${dateHtml(streaks.worstReturn.start, streaks.worstReturn.end)}
+      </div>
+    `;
+
+    // 2. FILTRAR Y PINTAR LA TABLA DE HISTORIAL
+    // AQUÍ ESTÁ EL CAMBIO: .filter(s => s.count >= 4)
+    const longStreaks = streaks.history.filter(s => s.count >= 4);
+
+    if (longStreaks.length === 0) {
+      tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px; color:#94a3b8;">No se encontraron rachas de 4 días o más en este periodo.</td></tr>';
+      return;
+    }
+
+    const rowsHtml = longStreaks.map(s => {
+      const isWin = s.type === 'WIN';
+      const colorClass = isWin ? 'text-green' : 'text-red';
+      const icon = isWin ? '📈 Alcista' : '📉 Bajista';
+      const bg = isWin ? 'rgba(34, 197, 94, 0.05)' : 'rgba(239, 68, 68, 0.05)';
+
+      return `
+        <tr style="background:${bg}">
+          <td class="${colorClass}" style="font-weight:bold;">${icon}</td>
+          <td style="font-weight:bold; color:#e2e8f0;">${s.count} días</td>
+          <td class="${colorClass}" style="font-weight:bold;">${fmtPct(s.return)}</td>
+          <td style="font-size:0.85rem; color:#94a3b8;">${fmtDate(s.start)}</td>
+          <td style="font-size:0.85rem; color:#94a3b8;">${fmtDate(s.end)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    tableBody.innerHTML = rowsHtml;
+    
+    // Opcional: Actualizar el título de la tabla en el DOM para indicar el filtro
+    // Esto es un pequeño truco para que el usuario sepa que está filtrado
+    const tableTitle = document.querySelector('#tab-patterns h3:last-of-type');
+    if (tableTitle) tableTitle.textContent = `📜 Historial de Rachas Relevantes (≥ 4 días)`;
+  }
 }

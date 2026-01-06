@@ -156,7 +156,6 @@ export default class TradingModel {
   }
 
   //patron dias de la semana
-// En model.js, agrega este método a la clase:
 
   getSeasonality() {
     if (this.data.length === 0) return null;
@@ -183,7 +182,103 @@ export default class TradingModel {
       counts: counts      // Cuántos días de cada uno hubo
     };
   }
+// patron meses
 
+  getMonthlySeasonality() {
+    if (this.data.length === 0) return null;
+
+    // Inicializamos acumuladores (0=Enero, 11=Diciembre)
+    const sums = new Array(12).fill(0);
+    const counts = new Array(12).fill(0);
+
+    this.data.forEach(row => {
+      // getMonth() devuelve 0 para Enero, 1 para Febrero...
+      const monthIndex = row.dateObj.getMonth();
+      
+      sums[monthIndex] += row.return;
+      counts[monthIndex]++;
+    });
+
+    // Calculamos promedios. Si no hay datos para un mes, devolvemos 0.
+    const averages = sums.map((sum, i) => counts[i] > 0 ? sum / counts[i] : 0);
+
+    return {
+      averages: averages,
+      counts: counts
+    };
+  }
+
+// métodos rachas
+  // REEMPLAZAR EN model.js
+
+  getStreaksAnalysis() {
+    if (this.data.length === 0) return null;
+
+    let currentType = 0; // 1 = Positiva, -1 = Negativa
+    let currentCount = 0;
+    let currentCumRet = 0;
+    let currentStartDate = this.data[0].dateStr;
+
+    // Récords (lo que ya tenías)
+    let maxWinStreak = { count: 0, return: 0, start: '-', end: '-' };
+    let maxLossStreak = { count: 0, return: 0, start: '-', end: '-' };
+    let maxReturnStreak = { count: 0, return: -Infinity, start: '-', end: '-' };
+    let maxDrawdownStreak = { count: 0, return: Infinity, start: '-', end: '-' };
+
+    // NUEVO: Array para guardar TODAS las rachas
+    let history = [];
+
+    this.data.forEach((row, i) => {
+      const ret = row.return;
+      const isPositive = ret >= 0;
+
+      // Continuar racha
+      if (i > 0 && ((isPositive && currentType === 1) || (!isPositive && currentType === -1))) {
+        currentCount++;
+        currentCumRet = ((1 + currentCumRet) * (1 + ret)) - 1;
+      
+      } else {
+        // La racha terminó (o es el primer dato)
+        if (i > 0) {
+          const prevDate = this.data[i-1].dateStr;
+          
+          // 1. GUARDAR EN EL HISTORIAL (NUEVO)
+          history.push({
+            type: currentType === 1 ? 'WIN' : 'LOSS',
+            count: currentCount,
+            return: currentCumRet,
+            start: currentStartDate,
+            end: prevDate
+          });
+
+          // 2. Calcular Récords (Igual que antes)
+          if (currentType === 1) { 
+            if (currentCount > maxWinStreak.count) maxWinStreak = { count: currentCount, return: currentCumRet, start: currentStartDate, end: prevDate };
+            if (currentCumRet > maxReturnStreak.return) maxReturnStreak = { count: currentCount, return: currentCumRet, start: currentStartDate, end: prevDate };
+          } else if (currentType === -1) { 
+            if (currentCount > maxLossStreak.count) maxLossStreak = { count: currentCount, return: currentCumRet, start: currentStartDate, end: prevDate };
+            if (currentCumRet < maxDrawdownStreak.return) maxDrawdownStreak = { count: currentCount, return: currentCumRet, start: currentStartDate, end: prevDate };
+          }
+        }
+
+        // Iniciar nueva racha
+        currentType = isPositive ? 1 : -1;
+        currentCount = 1;
+        currentCumRet = ret;
+        currentStartDate = row.dateStr;
+      }
+    });
+
+    // Devolvemos los récords Y el historial completo
+    return {
+      longestWin: maxWinStreak,
+      longestLoss: maxLossStreak,
+      bestReturn: maxReturnStreak,
+      worstReturn: maxDrawdownStreak,
+      history: history.reverse() // Invertimos para ver las más recientes primero
+    };
+  }
+  
   getCSVContent() {
     let csv = 'Date,Open,High,Low,Close,Volume,Return(%)\n';
     this.data.forEach(row => {

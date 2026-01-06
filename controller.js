@@ -34,8 +34,14 @@ export default class TradingController {
       // 3. NUEVO: Pedir extremos (Top 5)
       const extremes = this.model.getExtremes();
 
-      // NUEVO: Calcular Patrones
+      // Calcular Patrones semanal
       const seasonality = this.model.getSeasonality();
+
+      // Calcular Mensualidad
+      const monthlySeasonality = this.model.getMonthlySeasonality();
+
+      // NUEVO: Calcular Rachas
+      const streaks = this.model.getStreaksAnalysis();
 
       // 4. Actualizar la Vista (pasamos ambos objetos)
       this.view.showResultsPanel();
@@ -45,8 +51,12 @@ export default class TradingController {
       
       this.view.renderChart(data, params.symbol);
       this.view.renderHistoricalTable(data);
-      // NUEVO: Renderizar gráfico de patrones
+      // Renderizar gráfico de patrones
       this.view.renderSeasonalityChart(seasonality);
+      // Renderizar Gráfico Mensual
+      this.view.renderMonthlyChart(monthlySeasonality);
+      // Renderizar Rachas
+      this.view.renderStreaks(streaks);
 
     } catch (error) {
       console.error(error);

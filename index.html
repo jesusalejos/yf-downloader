@@ -68,6 +68,46 @@
     <p>Este gráfico muestra el promedio de ganancia o pérdida para cada día.</p>
     <p>Las barras <span class="text-green">Verdes</span> indican días alcistas promedio, y las <span class="text-red">Rojas</span> bajistas.</p>
   </div>
+
+  <hr style="border: 0; border-top: 1px solid #334155; margin: 2rem 0;">
+
+  <h3 style="color:#e2e8f0; margin-bottom:1rem; text-align:center;">🗓️ Rendimiento Promedio por Mes</h3>
+  
+  <div style="height: 400px; width: 100%;">
+    <canvas id="monthlyChart"></canvas>
+  </div>
+  
+  <div style="margin-top:1rem; text-align:center; font-size:0.9rem; color:#94a3b8;">
+    <p>Identifica la estacionalidad anual. ¿Es cierto el "Sell in May"?</p>
+  </div>
+
+<hr style="border: 0; border-top: 1px solid #334155; margin: 2rem 0;">
+
+  <h3 style="color:#e2e8f0; margin-bottom:1rem; text-align:center;">🔥 Rachas y Anomalías (Streaks)</h3>
+
+  <div class="grid" id="streaksGrid">
+    </div>
+
+  <hr style="border: 0; border-top: 1px solid #334155; margin: 2rem 0;">
+
+  <h3 style="color:#e2e8f0; margin-bottom:1rem; text-align:center;">📜 Historial Completo de Rachas</h3>
+  
+  <div class="table-scroll" style="max-height: 400px;">
+    <table id="streaksTable">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th>Duración</th>
+          <th>Retorno Acum.</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+        </tr>
+      </thead>
+      <tbody>
+        </tbody>
+    </table>
+  </div>
+
 </div>
 
       <div id="tab-stats" class="panel tab-content">
