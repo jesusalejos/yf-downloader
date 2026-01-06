@@ -1,10 +1,8 @@
-// controller.js
 export default class TradingController {
   constructor(model, view) {
     this.model = model;
     this.view = view;
 
-    // Enlazar eventos de la vista con métodos del controlador
     this.view.bindVisualize(this.handleVisualize.bind(this));
     this.view.bindDownload(this.handleDownload.bind(this));
   }
@@ -20,7 +18,7 @@ export default class TradingController {
     try {
       this.view.toggleLoading(true);
 
-      // 1. Pedir datos
+      // 1. Fetch Data
       const data = await this.model.fetchData(
         params.symbol, 
         params.interval, 
@@ -28,35 +26,31 @@ export default class TradingController {
         params.dateTo
       );
 
-      // 2. Pedir estadísticas
+      // 2. Calculate Basic Statistics
       const stats = this.model.getStatistics();
-      
-      // 3. NUEVO: Pedir extremos (Top 5)
       const extremes = this.model.getExtremes();
 
-      // Calcular Patrones semanal
+      // 3. Calculate Patterns
       const seasonality = this.model.getSeasonality();
-
-      // Calcular Mensualidad
       const monthlySeasonality = this.model.getMonthlySeasonality();
-
-      // NUEVO: Calcular Rachas
       const streaks = this.model.getStreaksAnalysis();
 
-      // 4. Actualizar la Vista (pasamos ambos objetos)
+      // 4. NEW: Calculate Shock & Correction (ATR 14, Shock 2.0x, 5 days look-forward)
+      const correctionReport = this.model.runCorrectionAnalysis(14, 2.0, 5);
+
+      // 5. Render View
       this.view.showResultsPanel();
       
-      // ¡Aquí está el cambio clave! Pasamos stats Y extremes
       this.view.renderStatistics(stats, extremes); 
-      
       this.view.renderChart(data, params.symbol);
       this.view.renderHistoricalTable(data);
-      // Renderizar gráfico de patrones
+      
       this.view.renderSeasonalityChart(seasonality);
-      // Renderizar Gráfico Mensual
       this.view.renderMonthlyChart(monthlySeasonality);
-      // Renderizar Rachas
       this.view.renderStreaks(streaks);
+      
+      // Render new report
+      this.view.renderCorrectionAnalysis(correctionReport);
 
     } catch (error) {
       console.error(error);
@@ -68,13 +62,8 @@ export default class TradingController {
 
   async handleDownload() {
     if (this.model.data.length === 0) {
-      const confirmFetch = confirm("No hay datos cargados. ¿Deseas descargarlos ahora?");
-      if (confirmFetch) {
-        await this.handleVisualize();
-        if (this.model.data.length === 0) return;
-      } else {
-        return;
-      }
+      this.view.showError("Primero visualiza los datos para poder descargarlos.");
+      return;
     }
 
     const csvContent = this.model.getCSVContent();

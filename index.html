@@ -3,18 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Trading Lab - Análisis Cuantitativo</title>
-  
+  <title>Trading Lab - Análisis Sistemático</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
   <div class="container">
-    
     <header class="header">
-      <h1>🏛️ Trading Lab <span style="font-weight:400; color:#64748b;">| MVC System</span></h1>
+      <h1>🏛️ Trading Lab <span class="tag">v2.0 MVC</span></h1>
     </header>
 
     <div class="panel">
@@ -23,17 +20,14 @@
           <label for="inputSymbol">Activo (Yahoo Ticker)</label>
           <input type="text" id="inputSymbol" value="BTC-USD" placeholder="Ej: AAPL, BTC-USD">
         </div>
-        
         <div>
           <label for="inputDateFrom">Desde</label>
-          <input type="date" id="inputDateFrom" value="2020-01-01">
+          <input type="date" id="inputDateFrom" value="2023-01-01">
         </div>
-        
         <div>
           <label for="inputDateTo">Hasta</label>
           <input type="date" id="inputDateTo">
         </div>
-        
         <div>
           <label for="inputInterval">Intervalo</label>
           <select id="inputInterval">
@@ -51,8 +45,9 @@
       
       <div id="loader" class="loader">
         <div class="spinner"></div>
-        <p>Analizando el mercado...</p>
+        <p>Procesando datos del mercado...</p>
       </div>
+      <div id="error-message" class="error-msg hidden"></div>
     </div>
 
     <div id="resultsContainer" class="hidden">
@@ -60,13 +55,23 @@
       <div class="tabs">
         <button class="tab active" data-target="tab-stats">Estadísticas</button>
         <button class="tab" data-target="tab-chart">Gráfico Precio</button>
-        <button class="tab" data-target="tab-patterns">Patrones & Rachas</button>
-        <button class="tab" data-target="tab-historical">Histórico</button>
+        <button class="tab" data-target="tab-patterns">Patrones & Volatilidad</button>
+        <button class="tab" data-target="tab-historical">Tabla Histórica</button>
       </div>
 
       <div id="tab-stats" class="panel tab-content">
-        <div class="grid" id="statsGrid">
-          </div>
+        <div class="grid" id="statsGrid"></div>
+        
+        <div class="grid" style="margin-top: 20px;">
+           <div class="panel" style="border: 1px solid #334155;">
+               <h4 style="color:#94a3b8; margin-bottom:10px;">🏆 Top 5 Mejores Días</h4>
+               <ul id="listBest" style="list-style:none; padding-left:0;"></ul>
+           </div>
+           <div class="panel" style="border: 1px solid #334155;">
+               <h4 style="color:#94a3b8; margin-bottom:10px;">💀 Top 5 Peores Días</h4>
+               <ul id="listWorst" style="list-style:none; padding-left:0;"></ul>
+           </div>
+        </div>
       </div>
 
       <div id="tab-chart" class="panel tab-content hidden">
@@ -75,50 +80,27 @@
 
       <div id="tab-patterns" class="panel tab-content hidden">
         
-        <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">📅 Rendimiento por Día de Semana</h3>
-        <div style="height: 300px; width: 100%; margin-bottom: 2rem;">
+        <h3 class="section-title">📉 Análisis de Choque y Corrección (Volatilidad > 2x ATR)</h3>
+        <div id="correction-analysis-container"></div>
+        
+        <hr class="divider">
+
+        <h3 class="section-title">📅 Rendimiento por Día de Semana</h3>
+        <div class="chart-container-sm">
           <canvas id="patternsChart"></canvas>
         </div>
 
-        <hr style="border:0; border-top:1px solid #334155; margin: 2rem 0;">
+        <hr class="divider">
 
-        <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">🗓️ Estacionalidad Mensual</h3>
-        <div style="height: 300px; width: 100%; margin-bottom: 2rem;">
+        <h3 class="section-title">🗓️ Estacionalidad Mensual</h3>
+        <div class="chart-container-sm">
           <canvas id="monthlyChart"></canvas>
         </div>
 
-        <hr style="border:0; border-top:1px solid #334155; margin: 2rem 0;">
+        <hr class="divider">
 
-        <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">🔥 Récords de Rachas (Streaks)</h3>
-        <div class="grid" id="streaksGrid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
-          </div>
-
-        <div style="margin-top: 2rem;">
-          <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">💥 Reacción Post-Movimiento Fuerte (>1.5 SD)</h3>
-          <div class="grid" id="correctionsGrid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
-            </div>
-        </div>
-
-        <div style="margin-top: 2rem;">
-          <h3 style="color:#e2e8f0; text-align:center; margin-bottom:1rem;">📜 Historial de Rachas Relevantes (≥ 4 días)</h3>
-          
-          <div class="table-scroll">
-            <table id="streaksTable">
-              <thead>
-                <tr>
-                  <th>Tipo</th>
-                  <th>Duración</th>
-                  <th>Retorno Acum.</th>
-                  <th>Inicio</th>
-                  <th>Fin</th>
-                  <th>Día Siguiente</th> </tr>
-              </thead>
-              <tbody>
-                </tbody>
-            </table>
-          </div>
-        </div>
-
+        <h3 class="section-title">🔥 Récords de Rachas (Streaks)</h3>
+        <div class="grid" id="streaksGrid"></div>
       </div>
 
       <div id="tab-historical" class="panel tab-content hidden">
@@ -135,8 +117,7 @@
                 <th>Rendimiento</th>
               </tr>
             </thead>
-            <tbody>
-              </tbody>
+            <tbody></tbody>
           </table>
         </div>
       </div>
@@ -145,6 +126,5 @@
   </div>
 
   <script type="module" src="main.js"></script>
-
 </body>
 </html>
